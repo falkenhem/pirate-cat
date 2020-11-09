@@ -3,11 +3,13 @@ package com.piratecatai.game.pathfinding;
 
 import com.badlogic.gdx.ai.pfa.Connection;
 import com.badlogic.gdx.ai.pfa.DefaultConnection;
+import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Array;
 
 public class Node implements Connection<Node> {
     protected final int x;
     protected final int y;
+    private Vector2 worldPos;
     private int index;
     private Array<Connection<Node>> connections = new Array<Connection<Node>>();
 
@@ -15,6 +17,11 @@ public class Node implements Connection<Node> {
         this.index = index;
         this.x = x;
         this.y = y;
+        this.worldPos = new Vector2(x * 20f + 10f,y * 20f + 10f);
+    }
+
+    public Vector2 getWorldPosition(){
+        return worldPos;
     }
 
     public int getX() {

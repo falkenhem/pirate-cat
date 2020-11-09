@@ -1,37 +1,37 @@
 package com.piratecatai.game;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.g3d.ModelInstance;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.BodyDef;
 import com.badlogic.gdx.physics.box2d.World;
 import com.badlogic.gdx.ai.steer.Steerable;
-import com.badlogic.gdx.ai.steer.behaviors.Seek;
 
-public class Player extends GameObject{
+public class Player extends Ship{
     boolean moving;
     boolean turnRight;
     boolean turnLeft;
     boolean shooting;
-    float pitch;
-    float shootCD;
+    float gunsCD;
     int shootingFromSide;
     int numCannons;
 
 
-    public Player(ModelInstance instance, World world){
-        super(instance, world, "round", BodyDef.BodyType.DynamicBody);
+    public Player(ModelInstance instance, World world, float health){
+        super(instance, world, "round", BodyDef.BodyType.DynamicBody, health);
         pitch = 0;
-        shootCD = 0;
-        numCannons = 3;
+        gunsCD = 0f;
+        numCannons = 2;
     }
 
     public void update(float time){
+        super.update();
+
         body.setAngularVelocity(0f);
 
         if (moving){
-            body.setLinearVelocity(MathUtils.cos(body.getAngle()) * 30f,-MathUtils.sin(body.getAngle()) * 30f);
-
+            body.setLinearVelocity(MathUtils.cos(body.getAngle()) * 40f,-MathUtils.sin(body.getAngle()) * 40f);
         } else body.setLinearDamping(1f);
 
         turnAndSetPitch();
@@ -65,14 +65,17 @@ public class Player extends GameObject{
         Vector2 origin;
         Vector2 travelDirection;
 
-        if (shootCD == 0){
+        //change to use worldVector and final int for sides
+
+        if (gunsCD == 0){
             if (shootingFromSide == 0) {
+                //change so you can shoot from stand-still, this is dumb :)
                 direction = new Vector2(body.getLinearVelocity().y,-body.getLinearVelocity().x);
                 direction.nor();
                 travelDirection = body.getLinearVelocity().nor();
 
                 for (int i = 0; i<=numCannons-1; i+=1) {
-                    origin = body.getPosition().add(new Vector2(travelDirection.x*0.5f*i,travelDirection.y*0.5f*i));
+                    origin = body.getPosition().add(new Vector2(travelDirection.x*0.3f*i,travelDirection.y*0.3f*i));
                     PirateCatAI.shoot(origin,direction,body.getLinearVelocity());
                     if (i == numCannons-1) shooting = false;
                 }
@@ -83,12 +86,38 @@ public class Player extends GameObject{
                 travelDirection = body.getLinearVelocity().nor();
 
                 for (int i = 0; i<=numCannons-1; i+=1) {
-                    origin = body.getPosition().add(new Vector2(travelDirection.x*0.5f*i,travelDirection.y*0.5f*i));
+                    origin = body.getPosition().add(new Vector2(travelDirection.x*0.3f*i,travelDirection.y*0.3f*i));
                     PirateCatAI.shoot(origin,direction,body.getLinearVelocity());
                     if (i == numCannons-1) shooting = false;
                 }
             }
         }
+
+    }
+
+    public Steerable getSteerable() {
+        return steerable;
+    }
+
+    public Vector2 getFuturePositionWithTime(float time){
+        Vector2 futurePosition;
+        futurePosition = body.getPosition().add(body.getLinearVelocity().scl(time/ Gdx.graphics.getDeltaTime()));
+
+        return futurePosition;
+    }
+
+    public Vector2 getPosition(){
+        return body.getPosition();
+    }
+
+    private void debugWorldPoint(){
+        Vector2 localPoint;
+        Vector2 worldPoint;
+
+        localPoint = new Vector2(100,0);
+        worldPoint = body.getWorldPoint(localPoint);
+
+        PirateCatAI.addDebugInstance(worldPoint);
 
     }
 

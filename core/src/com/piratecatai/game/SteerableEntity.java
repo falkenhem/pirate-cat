@@ -8,9 +8,11 @@ import com.badlogic.gdx.physics.box2d.Body;
 
 public class SteerableEntity implements Steerable {
     Body body;
+    float maxLinearSpeed;
 
     public SteerableEntity(Body body){
         this.body = body;
+        this.maxLinearSpeed = ((GameObject)body.getUserData()).getSpeed();
     }
 
     @Override
@@ -50,7 +52,7 @@ public class SteerableEntity implements Steerable {
 
     @Override
     public float getMaxLinearSpeed() {
-        return 10f;
+        return maxLinearSpeed;
     }
 
     @Override

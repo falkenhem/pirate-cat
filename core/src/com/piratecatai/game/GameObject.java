@@ -1,7 +1,9 @@
 package com.piratecatai.game;
 
+import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g3d.ModelInstance;
+import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.math.collision.BoundingBox;
 import com.badlogic.gdx.physics.box2d.Body;
@@ -9,22 +11,24 @@ import com.badlogic.gdx.physics.box2d.BodyDef;
 import com.badlogic.gdx.physics.box2d.FixtureDef;
 import com.badlogic.gdx.physics.box2d.World;
 
+import java.util.HashMap;
+
 public class GameObject {
     public Body body;
     private FixtureDef playerFixture;
-    public Vector3 pos;
+    private Vector3 pos;
     public Texture texture;
     public ModelInstance instance;
     public final Vector3 center = new Vector3();
     public final Vector3 dimensions = new Vector3();
-    public boolean destroyed;
     private final static BoundingBox bounds = new BoundingBox();
+    protected float speed;
     SteerableEntity steerable;
 
 
 
     public GameObject(ModelInstance instanceArg, World world, String typeOfShape, BodyDef.BodyType bodyType){
-        destroyed = false;
+        speed = 0f;
         instance = instanceArg;
         instance.calculateBoundingBox(bounds);
         bounds.getCenter(center);
@@ -45,42 +49,39 @@ public class GameObject {
 
         steerable = new SteerableEntity(body);
 
-
-        /*BodyDef bodyDef = new BodyDef();
-        switch (bodyType){
-            case "static":
-                bodyDef.type = BodyDef.BodyType.StaticBody;
-                break;
-            case "dynamic":
-                bodyDef.type = BodyDef.BodyType.DynamicBody;
-                break;
-        }
-        bodyDef.position.set(pos.x,pos.z);
-
-        body = world.createBody(bodyDef);
-
-        PolygonShape shape = new PolygonShape();
-        switch (typeOfShape){
-            case "round":
-                shape.setAsBox(dimensions.x/2,dimensions.z/2);
-                break;
-            case "rect":
-                shape.setAsBox(dimensions.x/2,dimensions.z/2);
-                break;
-        }
-
-        //shape.setAsBox(dimensions.x,dimensions.y);
-        FixtureDef fixtureDef = new FixtureDef();
-        fixtureDef.shape = shape;
-        fixtureDef.density = 1f;
-
-        body.createFixture(fixtureDef);
-
-        body.setUserData(this);
-
-        shape.dispose();
-        */
+    }
+    public float getSpeed(){
+        return speed;
     }
 
+    public Vector2 getWorldVectorFromLocalBodyVector(Vector2 localVector, Body body){
+        //Own method for calculation world coordinates because this.game uses x-z plane and box2d uses the x-y plane
+        Vector2 worldVector;
+        worldVector = new Vector2(body.getWorldVector(localVector)).scl(1f,-1f);
+        //turn vectors an additional 90degrees because model is turned incorrectly FIX THIS! when using proper assets
+        worldVector = new Vector2(worldVector.y, -worldVector.x);
 
+        return worldVector;
+    }
+
+    public Vector2 getWorldPointFromLocalBodyVector(Vector2 localPoint, Body body){
+        //Own method for calculation world coordinates because this.game uses x-z plane and box2d uses the x-y plane
+        Vector2 worldPoint;
+        worldPoint = new Vector2(body.getWorldVector(localPoint)).scl(1f,-1f);
+        //turn vectors an additional 90degrees because model is turned incorrectly FIX THIS! when using proper assets
+        worldPoint = new Vector2(worldPoint.y, -worldPoint.x);
+
+        worldPoint = worldPoint.add(body.getPosition());
+
+        return worldPoint;
+    }
+
+    public Vector3 getPos() {
+        return pos;
+    }
+
+    public void setPos(Vector2 posBody){
+        pos.x = posBody.x;
+        pos.z = posBody.y;
+    }
 }

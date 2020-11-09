@@ -5,11 +5,15 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.InputProcessor;
 import com.badlogic.gdx.ai.pfa.GraphPath;
+import com.badlogic.gdx.ai.steer.utils.paths.LinePath;
 import com.badlogic.gdx.assets.loaders.ModelLoader;
 import com.badlogic.gdx.graphics.*;
 import com.badlogic.gdx.graphics.g3d.*;
 import com.badlogic.gdx.graphics.g3d.attributes.BlendingAttribute;
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
+import com.badlogic.gdx.graphics.g3d.decals.CameraGroupStrategy;
+import com.badlogic.gdx.graphics.g3d.decals.DecalBatch;
+import com.badlogic.gdx.graphics.g3d.decals.SimpleOrthoGroupStrategy;
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight;
 import com.badlogic.gdx.graphics.g3d.loader.G3dModelLoader;
 import com.badlogic.gdx.graphics.g3d.utils.CameraInputController;
@@ -22,15 +26,14 @@ import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.JsonReader;
 import com.piratecatai.game.pathfinding.Graph;
 import com.piratecatai.game.pathfinding.Node;
-
-
+import com.piratecatai.game.pathfinding.NodeMapGenerator;
 import static com.badlogic.gdx.math.MathUtils.atan2;
 
 
 public class PirateCatAI implements ApplicationListener, InputProcessor {
 	private static float time;
 	public Environment environment;
-	public PerspectiveCamera cam;
+	private static PerspectiveCamera cam;
 	public Shader shader;
 	public CameraInputController camController;
 	public ModelBatch modelBatch;
@@ -47,14 +50,15 @@ public class PirateCatAI implements ApplicationListener, InputProcessor {
 	protected static Array<CannonBall> cannonBalls;
 	private Array<Island> islands;
 	private Array<NPCship> npcships;
-	protected static Array<ModelInstance> debugInstances;
+	public static Array<ModelInstance> debugInstances;
 	protected static BodyCreator bodycreator;
 	protected Pixmap pixmap;
-	private GraphPath<Node> nodePath;
-	private Graph nodeGraph;
+	protected static  Graph nodeGraph;
+	private static DecalBatch decalBatch;
 
 	@Override
 	public void create () {
+
 		pixmap = new Pixmap(Gdx.files.internal("pixMap.png"));
 
 		world = new World(new Vector2(0, 0f),true);
@@ -66,8 +70,7 @@ public class PirateCatAI implements ApplicationListener, InputProcessor {
 		islands = new Array<Island>();
 		npcships = new Array<NPCship>();
 		debugInstances = new Array<ModelInstance>();
-		//nodeGraph = NodeMapGenerator.generateGraph(pixmap);
-
+		nodeGraph = NodeMapGenerator.generateGraph(pixmap);
 
 		bodycreator = BodyCreator.getInstance(world);
 
@@ -85,23 +88,20 @@ public class PirateCatAI implements ApplicationListener, InputProcessor {
 		cam.far = 1000f;
 		cam.update();
 
+
 		//separate 3D import function later
 		ModelLoader modelLoader = new G3dModelLoader(new JsonReader());
 
 		model = modelLoader.loadModel(Gdx.files.internal("Simple_Pirate_Ship_y_up_x_forw.g3dj"));
 		playerInstance = new ModelInstance(model);
 		playerInstance.transform.setTranslation(100,0,100);
-		player = new Player(playerInstance, world);
+		player = new Player(playerInstance, world, 300f);
 
-		for (int x =0 ; x<=0 ; x+=40) {
+		for (int x =100 ; x<=100 ; x+=80) {
 			NPCinstance = new ModelInstance(model);
 			NPCinstance.transform.setTranslation(x,-3f,0f);
-			npcships.add(new NPCship(NPCinstance, world));
+			npcships.add(new NPCship(NPCinstance, world, 100f));
 		}
-
-		model = modelLoader.loadModel(Gdx.files.internal("island.g3dj"));
-		islandInstance = new ModelInstance(model,80f,0f,230f);
-		islands.add(new Island(islandInstance,world));
 
 
 		model = modelLoader.loadModel(Gdx.files.internal("flat_water_5.g3dj"));
@@ -118,16 +118,10 @@ public class PirateCatAI implements ApplicationListener, InputProcessor {
 		world.setContactListener(new ContactListener() {
 			@Override
 			public void beginContact(Contact contact) {
-				if (contact.getFixtureA().getBody().getUserData() instanceof CannonBall
-						&& contact.getFixtureB().getBody().getUserData() instanceof NPCship) {
-					((NPCship) contact.getFixtureB().getBody().getUserData()).destroyed = true;
-					((CannonBall) contact.getFixtureA().getBody().getUserData()).destroyed = true;
-				}
-
-				if (contact.getFixtureB().getBody().getUserData() instanceof CannonBall
-						&& contact.getFixtureA().getBody().getUserData() instanceof NPCship) {
-					((NPCship) contact.getFixtureA().getBody().getUserData()).destroyed = true;
-					((CannonBall) contact.getFixtureB().getBody().getUserData()).destroyed = true;
+				if (contact.getFixtureA().getBody().getUserData() instanceof DynamicGameObject
+						&& contact.getFixtureA().getBody().getUserData() instanceof DynamicGameObject) {
+					((DynamicGameObject) contact.getFixtureA().getBody().getUserData()).gotHit(1);
+					((DynamicGameObject) contact.getFixtureB().getBody().getUserData()).gotHit(1);
 				}
 			}
 			@Override
@@ -142,33 +136,32 @@ public class PirateCatAI implements ApplicationListener, InputProcessor {
 
 
 		});
-
-		//nodePath = nodeGraph.findPath(NodeMapGenerator.nodes.get(0),NodeMapGenerator.nodes.get(3599));
-		//System.out.println(nodePath);
-
+		/*healthBar = new HealthBar(new Vector3(100,20,100));*/
+		decalBatch = new DecalBatch(new CameraGroupStrategy(cam));
 	}
 
 	@Override
 	public void render () {
+		debugInstances.clear();
 		time += Gdx.graphics.getDeltaTime();
 		Gdx.input.setInputProcessor(this);
 		Gdx.gl.glClearColor(135/255f, 206/255f, 235/255f, 1);
 
-
 		for (Body body:allBodiesInWorld) {
 			if (body.getUserData() instanceof NPCship) {
-				if (((NPCship) body.getUserData()).destroyed) {
+				if (((NPCship) body.getUserData()).isDestroyed()) {
 					npcships.removeValue(((NPCship) body.getUserData()), true);
 					world.destroyBody(body);
 				}
 			}
 
 			if (body.getUserData() instanceof CannonBall) {
-				if (((CannonBall) body.getUserData()).destroyed) {
+				if (((CannonBall) body.getUserData()).isDestroyed()) {
 					cannonBalls.removeValue(((CannonBall) body.getUserData()),true);
 					world.destroyBody(body);
 				}
 			}
+
 		}
 
 		world.step(1f/60f, 6, 2);
@@ -190,6 +183,7 @@ public class PirateCatAI implements ApplicationListener, InputProcessor {
 
 		Gdx.gl.glViewport(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
 		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
+
 		cam.position.set(player.instance.transform.getTranslation(new Vector3()).add(0f, 150f, 150f));
 		cam.lookAt(player.instance.transform.getTranslation(new Vector3()));
 		cam.update();
@@ -208,13 +202,14 @@ public class PirateCatAI implements ApplicationListener, InputProcessor {
 			modelBatch.render(instance,environment,shader);
 		modelBatch.end();
 
-
+		decalBatch.flush();
 
 	}
 
 	@Override
 	public void dispose () {
-
+		decalBatch.dispose();
+		modelBatch.dispose();
 	}
 
 	@Override
@@ -336,18 +331,16 @@ public class PirateCatAI implements ApplicationListener, InputProcessor {
 	}
 
 	public static void shoot(Vector2 origin, Vector2 direction, Vector2 inertia){
+		//Move this to a pool
+
 		Model model;
 		ModelBuilder modelBuilder;
 		ModelInstance instance;
 		modelBuilder = new ModelBuilder();
-		//Vector2 direction;
 
 		model = modelBuilder.createSphere(4f,4f,4f,4,4,
 				new Material(ColorAttribute.createDiffuse(Color.DARK_GRAY)), VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal);
 		instance = new ModelInstance(model);
-
-		//direction = destination.sub(origin);
-		//direction.nor();
 
 		origin = new Vector2(origin.x + direction.x*15f,origin.y + direction.y*15f);
 
@@ -358,6 +351,26 @@ public class PirateCatAI implements ApplicationListener, InputProcessor {
 		PirateCatAI.cannonBalls.add(new CannonBall(instance, world, direction,inertia));
 
 
+	}
+
+	public static void addDebugInstance(Vector2 pos){
+		Model model;
+		ModelInstance modelInstance;
+		ModelBuilder modelBuilder;
+		modelBuilder = new ModelBuilder();
+		model = modelBuilder.createSphere(4f,4f,4f,4,4,
+				new Material(ColorAttribute.createDiffuse(Color.GREEN)), VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal);
+
+		modelInstance = new ModelInstance(model,pos.x,0,pos.y);
+		PirateCatAI.debugInstances.add(modelInstance);
+	}
+
+	public static DecalBatch getDecalBatch(){
+		return decalBatch;
+	}
+
+	public static Camera getCam(){
+		return cam;
 	}
 
 

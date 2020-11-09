@@ -2,6 +2,8 @@ package com.piratecatai.game;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Camera;
+import com.badlogic.gdx.graphics.GL20;
+import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g3d.Renderable;
 import com.badlogic.gdx.graphics.g3d.Shader;
 import com.badlogic.gdx.graphics.g3d.utils.RenderContext;
@@ -16,10 +18,13 @@ public class TestShader implements Shader {
     int u_projViewTrans;
     int u_worldTrans;
     int u_color;
+    Texture texture;
     float time;
 
     @Override
     public void init() {
+        texture = new Texture(Gdx.files.internal("waves.png"));
+        texture.setWrap(Texture.TextureWrap.Repeat, Texture.TextureWrap.Repeat);
         String vert = Gdx.files.internal("Data/test.vertex.glsl").readString();
         String frag = Gdx.files.internal("Data/test.fragment.glsl").readString();
         program = new ShaderProgram(vert, frag);
@@ -42,7 +47,6 @@ public class TestShader implements Shader {
         this.context = context;
         program.bind();
         program.setUniformMatrix(u_projViewTrans, camera.combined);
-        //context.setCullFace(GL20.GL_BACK);
         context.setBlending(true,1,1);
     }
 
@@ -51,7 +55,7 @@ public class TestShader implements Shader {
         time = PirateCatAI.getTime();
         program.setUniformMatrix(u_worldTrans, renderable.worldTransform);
         program.setUniformf("u_time",time);
-        program.setUniformi("uSurfaceTexture", 0);
+        program.setUniformi("uSurfaceTexture", context.textureBinder.bind(texture));
         renderable.meshPart.render(program);
     }
 
