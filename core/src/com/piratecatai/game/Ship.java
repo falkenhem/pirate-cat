@@ -19,8 +19,8 @@ public abstract class Ship extends DynamicGameObject{
     }
 
     public void update(){
+        super.update();
         float percentHealth = getHealth()/getMaxHealth();
-        setPos(body.getPosition());
         healthBar.update(percentHealth,getPos());
         healthBar.getDecal().lookAt(PirateCatAI.getCam().position,PirateCatAI.getCam().up);
         PirateCatAI.getDecalBatch().add(healthBar.getDecal());

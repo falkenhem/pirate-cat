@@ -4,8 +4,6 @@ import com.badlogic.gdx.ApplicationListener;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.InputProcessor;
-import com.badlogic.gdx.ai.pfa.GraphPath;
-import com.badlogic.gdx.ai.steer.utils.paths.LinePath;
 import com.badlogic.gdx.assets.loaders.ModelLoader;
 import com.badlogic.gdx.graphics.*;
 import com.badlogic.gdx.graphics.g3d.*;
@@ -13,7 +11,6 @@ import com.badlogic.gdx.graphics.g3d.attributes.BlendingAttribute;
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.graphics.g3d.decals.CameraGroupStrategy;
 import com.badlogic.gdx.graphics.g3d.decals.DecalBatch;
-import com.badlogic.gdx.graphics.g3d.decals.SimpleOrthoGroupStrategy;
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight;
 import com.badlogic.gdx.graphics.g3d.loader.G3dModelLoader;
 import com.badlogic.gdx.graphics.g3d.utils.CameraInputController;
@@ -25,7 +22,6 @@ import com.badlogic.gdx.physics.box2d.*;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.JsonReader;
 import com.piratecatai.game.pathfinding.Graph;
-import com.piratecatai.game.pathfinding.Node;
 import com.piratecatai.game.pathfinding.NodeMapGenerator;
 import static com.badlogic.gdx.math.MathUtils.atan2;
 
@@ -35,7 +31,6 @@ public class PirateCatAI implements ApplicationListener, InputProcessor {
 	public Environment environment;
 	private static PerspectiveCamera cam;
 	public Shader shader;
-	public CameraInputController camController;
 	public ModelBatch modelBatch;
 	public Model model;
 	private ModelInstance playerInstance;
@@ -55,9 +50,13 @@ public class PirateCatAI implements ApplicationListener, InputProcessor {
 	protected Pixmap pixmap;
 	protected static  Graph nodeGraph;
 	private static DecalBatch decalBatch;
+	private static int mapWidth;
+	private static int mapHeight;
 
 	@Override
 	public void create () {
+		mapWidth = 1200;
+		mapHeight = 1200;
 
 		pixmap = new Pixmap(Gdx.files.internal("pixMap.png"));
 
@@ -94,10 +93,10 @@ public class PirateCatAI implements ApplicationListener, InputProcessor {
 
 		model = modelLoader.loadModel(Gdx.files.internal("Simple_Pirate_Ship_y_up_x_forw.g3dj"));
 		playerInstance = new ModelInstance(model);
-		playerInstance.transform.setTranslation(100,0,100);
+		playerInstance.transform.setTranslation(600,0,600);
 		player = new Player(playerInstance, world, 300f);
 
-		for (int x =100 ; x<=100 ; x+=80) {
+		for (int x =100 ; x<=1000 ; x+=400) {
 			NPCinstance = new ModelInstance(model);
 			NPCinstance.transform.setTranslation(x,-3f,0f);
 			npcships.add(new NPCship(NPCinstance, world, 100f));
@@ -106,8 +105,8 @@ public class PirateCatAI implements ApplicationListener, InputProcessor {
 
 		model = modelLoader.loadModel(Gdx.files.internal("flat_water_5.g3dj"));
 		model.getMaterial("Material").set(new BlendingAttribute(1f));
-		for (int x=100 ; x<=1100 ; x+=200) {
-			for (int z = 100; z <=1100 ; z+=200) {
+		for (int x=100 ; x<=mapWidth ; x+=200) {
+			for (int z = 100; z <=mapHeight ; z+=200) {
 				water.add(new ModelInstance(model, x,0f,z));
 			}
 
@@ -184,7 +183,7 @@ public class PirateCatAI implements ApplicationListener, InputProcessor {
 		Gdx.gl.glViewport(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
 		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
 
-		cam.position.set(player.instance.transform.getTranslation(new Vector3()).add(0f, 150f, 150f));
+		cam.position.set(player.instance.transform.getTranslation(new Vector3()).add(0f, 120f, 120f));
 		cam.lookAt(player.instance.transform.getTranslation(new Vector3()));
 		cam.update();
 
@@ -218,6 +217,11 @@ public class PirateCatAI implements ApplicationListener, InputProcessor {
 
 	@Override
 	public void pause() {
+	}
+
+	@Override
+	public boolean scrolled(float amountX, float amountY) {
+		return false;
 	}
 
 	@Override
@@ -274,19 +278,7 @@ public class PirateCatAI implements ApplicationListener, InputProcessor {
 
 	@Override
 	public boolean touchDown(int screenX, int screenY, int pointer, int button) {
-		/*
-		Vector2 point;
-		Vector2 origin;
-		Ray ray = cam.getPickRay(screenX, screenY);
-		position = new Vector3();
-		final float distance = -ray.origin.y / ray.direction.y;
-		position.set(ray.direction).scl(distance).add(ray.origin);
-		System.out.println(position);
 
-		point = new Vector2(position.x,position.z);
-		shoot(player.body.getPosition(),point);
-
-		 */
 		return true;
 	}
 
@@ -305,10 +297,6 @@ public class PirateCatAI implements ApplicationListener, InputProcessor {
 		return true;
 	}
 
-	@Override
-	public boolean scrolled(int amount) {
-		return true;
-	}
 	public static float getTime(){return time;}
 	public static float getAngleFromBodyOnWave(Body body){
 		float angle;
@@ -373,5 +361,11 @@ public class PirateCatAI implements ApplicationListener, InputProcessor {
 		return cam;
 	}
 
+	public static int getMapHeight() {
+		return mapHeight;
+	}
 
+	public static int getMapWidth() {
+		return mapWidth;
+	}
 }

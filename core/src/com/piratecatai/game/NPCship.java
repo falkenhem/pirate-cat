@@ -21,7 +21,7 @@ import com.badlogic.gdx.math.GeometryUtils;
 public class NPCship extends Ship{
     float distanceToPlayer;
     float speed;
-    final float interceptScalar = 0.5f;
+    final float interceptScalar = 0.1f;
     protected StateMachine<NPCship, NPCshipState> stateMachine;
     SteeringAcceleration<Vector2> steering;
     CentralRayWithWhiskersConfiguration<Vector2> rayConfig;
