@@ -21,6 +21,7 @@ import com.badlogic.gdx.math.GeometryUtils;
 public class NPCship extends Ship{
     float distanceToPlayer;
     float speed;
+    Player player;
     final float interceptScalar = 0.1f;
     protected StateMachine<NPCship, NPCshipState> stateMachine;
     SteeringAcceleration<Vector2> steering;
@@ -41,10 +42,12 @@ public class NPCship extends Ship{
     protected final int RIGHT = 1;
 
 
-    public NPCship(ModelInstance instance, World world, float health){
-        super(instance, world, "round", BodyDef.BodyType.DynamicBody, health);
+    public NPCship(ModelInstance instance, World world, float health, Player player,
+                   EffectsManager effectsManager, GameAssetManager gameAssetManager){
+        super(instance, world, "round", BodyDef.BodyType.DynamicBody, health, effectsManager, gameAssetManager);
         this.speed = 10f;
         this.pitch = 0;
+        this.player = player;
         gunsCD = 5000;
 
         coolDownManager = new CoolDownManager();
@@ -57,14 +60,14 @@ public class NPCship extends Ship{
         generateNewPathToPlayer();
 
         steering= new SteeringAcceleration<Vector2>(new Vector2());
-        matchVelocity = new MatchVelocity<Vector2>(steerable,PirateCatAI.player.getSteerable());
+        matchVelocity = new MatchVelocity<Vector2>(steerable,player.getSteerable());
         followPath = new FollowPath(steerable,pathToPlayer,50);
         followPath.setArriveEnabled(false);
         rayConfig = new CentralRayWithWhiskersConfiguration<Vector2>(steerable, 60,
                 55, 45 * MathUtils.degreesToRadians);
         raycastCollisionDetector = new Box2dRaycastCollisionDetector(world);
         raycastObstacleAvoidance = new RaycastObstacleAvoidance<>(steerable,rayConfig,raycastCollisionDetector,12f);
-        pursue = new Pursue<Vector2>(steerable,PirateCatAI.player.getSteerable());
+        pursue = new Pursue<Vector2>(steerable,player.getSteerable());
 
         prioritySteeringPursue = new PrioritySteering<Vector2>(steerable, 0.001f)
                 .add(followPath);
@@ -77,7 +80,7 @@ public class NPCship extends Ship{
 
     public void update(float time){
         super.update();
-        distanceToPlayer = body.getPosition().dst(PirateCatAI.player.body.getPosition());
+        distanceToPlayer = body.getPosition().dst(player.body.getPosition());
         stateMachine.update();
         instance.transform.setFromEulerAnglesRad(body.getAngle() - MathUtils.PI/2,pitch, PirateCatAI.getAngleFromBodyOnWave(body));
         instance.transform.setTranslation(body.getPosition().x,
@@ -128,7 +131,7 @@ public class NPCship extends Ship{
         Node closestNodeToPlayer;
         Vector2 futurePositionPlayer;
 
-        futurePositionPlayer = PirateCatAI.player.getFuturePositionWithTime(getTimeUntilInterceptPlayer() * interceptScalar);
+        futurePositionPlayer = player.getFuturePositionWithTime(getTimeUntilInterceptPlayer() * interceptScalar);
 
         closestNodeToNPCship = PirateCatAI.nodeGraph.getNodeByCoordinates(body.getPosition());
         closestNodeToPlayer = PirateCatAI.nodeGraph.getNodeByCoordinates(futurePositionPlayer);
@@ -168,7 +171,7 @@ public class NPCship extends Ship{
 
         barycoord = new Vector2();
 
-        GeometryUtils.toBarycoord(PirateCatAI.player.getPosition(),lineOfSightTriangleWorld[0],lineOfSightTriangleWorld[1],lineOfSightTriangleWorld[2],barycoord);
+        GeometryUtils.toBarycoord(player.getPosition(),lineOfSightTriangleWorld[0],lineOfSightTriangleWorld[1],lineOfSightTriangleWorld[2],barycoord);
 
         if (GeometryUtils.barycoordInsideTriangle(barycoord)) return true;
         else return false;
@@ -181,19 +184,24 @@ public class NPCship extends Ship{
         switch(localDirection) {
             case LEFT:
                 direction = new Vector2(0,-1f);
-                PirateCatAI.shoot(getWorldPointFromLocalBodyVector(cannonsLocalPosition[LEFT], body),getWorldVectorFromLocalBodyVector(direction, body),body.getLinearVelocity());
+                PirateCatAI.shoot(getWorldPointFromLocalBodyVector(cannonsLocalPosition[LEFT], body),
+                        getWorldVectorFromLocalBodyVector(direction, body),body.getLinearVelocity(), world);
                 break;
             case RIGHT:
                 direction = new Vector2(0,1f);
-                PirateCatAI.shoot(getWorldPointFromLocalBodyVector(cannonsLocalPosition[RIGHT], body),getWorldVectorFromLocalBodyVector(direction, body),body.getLinearVelocity());
+                PirateCatAI.shoot(getWorldPointFromLocalBodyVector(cannonsLocalPosition[RIGHT], body),
+                        getWorldVectorFromLocalBodyVector(direction, body),body.getLinearVelocity(), world);
                 break;
 
         }
 
     }
 
-
-
+    @Override
+    protected void setDestroyed() {
+        effectsManager.addStationaryParticleEffect(gameAssetManager.getEffectByName("betterExplosion"),getPos(4f));
+        super.setDestroyed();
+    }
 }
 
 

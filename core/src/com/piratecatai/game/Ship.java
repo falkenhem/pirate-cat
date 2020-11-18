@@ -9,8 +9,9 @@ public abstract class Ship extends DynamicGameObject{
     protected float pitch;
     private HealthBar healthBar;
 
-    public Ship(ModelInstance instanceArg, World world, String typeOfShape, BodyDef.BodyType bodyType, float health) {
-        super(instanceArg, world, typeOfShape, bodyType, health);
+    public Ship(ModelInstance instanceArg, World world, String typeOfShape, BodyDef.BodyType bodyType, float health,
+                EffectsManager effectsManager, GameAssetManager gameAssetManager) {
+        super(instanceArg, world, typeOfShape, bodyType, health, effectsManager, gameAssetManager);
         healthBar = new HealthBar(getPos());
     }
 

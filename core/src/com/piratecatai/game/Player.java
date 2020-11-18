@@ -18,8 +18,9 @@ public class Player extends Ship{
     int numCannons;
 
 
-    public Player(ModelInstance instance, World world, float health){
-        super(instance, world, "round", BodyDef.BodyType.DynamicBody, health);
+    public Player(ModelInstance instance, World world, float health,
+                  EffectsManager effectsManager, GameAssetManager gameAssetManager){
+        super(instance, world, "round", BodyDef.BodyType.DynamicBody, health, effectsManager, gameAssetManager);
         pitch = 0;
         gunsCD = 0f;
         numCannons = 2;
@@ -76,7 +77,7 @@ public class Player extends Ship{
 
                 for (int i = 0; i<=numCannons-1; i+=1) {
                     origin = body.getPosition().add(new Vector2(travelDirection.x*0.3f*i,travelDirection.y*0.3f*i));
-                    PirateCatAI.shoot(origin,direction,body.getLinearVelocity());
+                    PirateCatAI.shoot(origin,direction,body.getLinearVelocity(),world);
                     if (i == numCannons-1) shooting = false;
                 }
             }
@@ -87,7 +88,7 @@ public class Player extends Ship{
 
                 for (int i = 0; i<=numCannons-1; i+=1) {
                     origin = body.getPosition().add(new Vector2(travelDirection.x*0.3f*i,travelDirection.y*0.3f*i));
-                    PirateCatAI.shoot(origin,direction,body.getLinearVelocity());
+                    PirateCatAI.shoot(origin,direction,body.getLinearVelocity(),world);
                     if (i == numCannons-1) shooting = false;
                 }
             }

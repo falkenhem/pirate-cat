@@ -23,11 +23,13 @@ public class GameObject {
     public final Vector3 dimensions = new Vector3();
     private final static BoundingBox bounds = new BoundingBox();
     protected float speed;
+    protected World world;
     SteerableEntity steerable;
 
 
 
     public GameObject(ModelInstance instanceArg, World world, String typeOfShape, BodyDef.BodyType bodyType){
+        this.world = world;
         speed = 0f;
         instance = instanceArg;
         instance.calculateBoundingBox(bounds);
@@ -78,6 +80,10 @@ public class GameObject {
 
     public Vector3 getPos() {
         return pos;
+    }
+    public Vector3 getPos(Float setY) {
+        if (setY != null) return new Vector3(pos.x,setY,pos.z);
+        else return pos;
     }
 
     public void setPos(Vector2 posBody){

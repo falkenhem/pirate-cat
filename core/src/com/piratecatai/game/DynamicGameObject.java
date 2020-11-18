@@ -1,6 +1,7 @@
 package com.piratecatai.game;
 
 import com.badlogic.gdx.graphics.g3d.ModelInstance;
+import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.physics.box2d.BodyDef;
 import com.badlogic.gdx.physics.box2d.World;
 
@@ -8,10 +9,21 @@ public abstract class DynamicGameObject extends GameObject{
     private float health;
     private float maxHealth;
     private boolean destroyed;
+    protected EffectsManager effectsManager;
+    protected GameAssetManager gameAssetManager;
 
     public DynamicGameObject(ModelInstance instanceArg, World world, String typeOfShape, BodyDef.BodyType bodyType, float health) {
         super(instanceArg, world, typeOfShape, bodyType);
         this.health = health;
+        maxHealth = health;
+    }
+
+    public DynamicGameObject(ModelInstance instanceArg, World world, String typeOfShape, BodyDef.BodyType bodyType,
+                             float health, EffectsManager effectsManager, GameAssetManager gameAssetManager) {
+        super(instanceArg, world, typeOfShape, bodyType);
+        this.health = health;
+        this.effectsManager = effectsManager;
+        this.gameAssetManager = gameAssetManager;
         maxHealth = health;
     }
 
@@ -23,7 +35,9 @@ public abstract class DynamicGameObject extends GameObject{
 
     public void gotHit(int strength){
         setHealth(10f * strength);
-        if (health <= 0) setDestroyed();
+        if (health <= 0) {
+            setDestroyed();
+        }
     }
 
     public boolean isDestroyed() {
@@ -46,7 +60,7 @@ public abstract class DynamicGameObject extends GameObject{
         this.maxHealth = maxHealth;
     }
 
-    private void setDestroyed(){
+    protected void setDestroyed(){
         destroyed = true;
     }
 }
