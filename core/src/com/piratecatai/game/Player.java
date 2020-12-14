@@ -1,18 +1,24 @@
 package com.piratecatai.game;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
+import com.badlogic.gdx.InputMultiplexer;
+import com.badlogic.gdx.InputProcessor;
 import com.badlogic.gdx.graphics.g3d.ModelInstance;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.BodyDef;
 import com.badlogic.gdx.physics.box2d.World;
 import com.badlogic.gdx.ai.steer.Steerable;
+import com.badlogic.gdx.utils.Array;
 
-public class Player extends Ship{
+public class Player extends Ship implements InputProcessor {
     boolean moving;
     boolean turnRight;
     boolean turnLeft;
     boolean shooting;
+    boolean chargingShot;
+    private Array<Cannon> cannons = new Array<>();
     float gunsCD;
     int shootingFromSide;
     int numCannons;
@@ -21,9 +27,18 @@ public class Player extends Ship{
     public Player(ModelInstance instance, World world, float health,
                   EffectsManager effectsManager, GameAssetManager gameAssetManager){
         super(instance, world, "round", BodyDef.BodyType.DynamicBody, health, effectsManager, gameAssetManager);
+        ((InputMultiplexer)Gdx.input.getInputProcessor()).addProcessor(this);
         pitch = 0;
         gunsCD = 0f;
-        numCannons = 2;
+        numCannons = 1;
+        chargingShot = false;
+
+        cannonsLocalPosition = new Vector2[2];
+        cannonsLocalPosition[LEFT] = new Vector2(0,-20f);
+        cannonsLocalPosition[RIGHT] = new Vector2(0,20f);
+
+        cannons.add(new Cannon(this, new Vector2(0,-20), LEFT));
+        cannons.add(new Cannon(this, new Vector2(0,-20), RIGHT));
     }
 
     public void update(float time){
@@ -32,17 +47,23 @@ public class Player extends Ship{
         body.setAngularVelocity(0f);
 
         if (moving){
-            body.setLinearVelocity(MathUtils.cos(body.getAngle()) * 40f,-MathUtils.sin(body.getAngle()) * 40f);
+            body.setLinearVelocity(MathUtils.cos(body.getAngle()- MathUtils.PI/2) * 40f,-MathUtils.sin(body.getAngle()- MathUtils.PI/2) * 40f);
         } else body.setLinearDamping(1f);
 
         turnAndSetPitch();
 
-        instance.transform.setFromEulerAnglesRad(body.getAngle(),pitch, PirateCatAI.getAngleFromBodyOnWave(body));
+        instance.transform.setFromEulerAnglesRad(body.getAngle() - MathUtils.PI/2,pitch, PirateCatAI.getAngleFromBodyOnWave(body));
         instance.transform.setTranslation(body.getPosition().x,
                 100f*(MathUtils.cos(-body.getPosition().y/100 * 3.0f * 3.1415f + time) * 0.05f *
                         MathUtils.sin(body.getPosition().x/100 * 3.0f * 3.1415f + time))-3f, body.getPosition().y);
 
-        if (shooting) shoot();
+        /*if (shooting) shoot(shootingFromSide);
+        shooting = false;*/
+
+        for (Cannon cannon : cannons){
+            cannon.update();
+        }
+
     }
 
     private void turnAndSetPitch(){
@@ -61,41 +82,6 @@ public class Player extends Ship{
         }
     }
 
-    private void shoot(){
-        Vector2 direction;
-        Vector2 origin;
-        Vector2 travelDirection;
-
-        //change to use worldVector and final int for sides
-
-        if (gunsCD == 0){
-            if (shootingFromSide == 0) {
-                //change so you can shoot from stand-still, this is dumb :)
-                direction = new Vector2(body.getLinearVelocity().y,-body.getLinearVelocity().x);
-                direction.nor();
-                travelDirection = body.getLinearVelocity().nor();
-
-                for (int i = 0; i<=numCannons-1; i+=1) {
-                    origin = body.getPosition().add(new Vector2(travelDirection.x*0.3f*i,travelDirection.y*0.3f*i));
-                    PirateCatAI.shoot(origin,direction,body.getLinearVelocity(),world);
-                    if (i == numCannons-1) shooting = false;
-                }
-            }
-            if (shootingFromSide == 1) {
-                direction = new Vector2(-body.getLinearVelocity().y,body.getLinearVelocity().x);
-                direction.nor();
-                travelDirection = body.getLinearVelocity().nor();
-
-                for (int i = 0; i<=numCannons-1; i+=1) {
-                    origin = body.getPosition().add(new Vector2(travelDirection.x*0.3f*i,travelDirection.y*0.3f*i));
-                    PirateCatAI.shoot(origin,direction,body.getLinearVelocity(),world);
-                    if (i == numCannons-1) shooting = false;
-                }
-            }
-        }
-
-    }
-
     public Steerable getSteerable() {
         return steerable;
     }
@@ -111,16 +97,86 @@ public class Player extends Ship{
         return body.getPosition();
     }
 
-    private void debugWorldPoint(){
-        Vector2 localPoint;
-        Vector2 worldPoint;
+    @Override
+    public boolean keyDown(int keycode) {
+        if(keycode == Input.Keys.UP) {
+            moving = true;
+        }
+        if(keycode == Input.Keys.LEFT) {
+            turnLeft = true;
+        }
+        if(keycode == Input.Keys.RIGHT) {
+            turnRight = true;
+        }
+        if(keycode == Input.Keys.Q) {
+            for (Cannon cannon : cannons){
+                if (cannon.getSideOfShip() == LEFT) cannon.startCharging();
+            }
+        }
+        if(keycode == Input.Keys.E) {
+            for (Cannon cannon : cannons){
+                if (cannon.getSideOfShip() == RIGHT) cannon.startCharging();
+            }
+        }
 
-        localPoint = new Vector2(100,0);
-        worldPoint = body.getWorldPoint(localPoint);
-
-        PirateCatAI.addDebugInstance(worldPoint);
-
+        return false;
     }
 
+    @Override
+    public boolean keyUp(int keycode) {
+        if(keycode == Input.Keys.RIGHT) {
+            turnRight = false;
+        }
 
+        if(keycode == Input.Keys.LEFT) {
+            turnLeft = false;
+        }
+
+        if(keycode == Input.Keys.UP) {
+            moving = false;
+        }
+
+        if(keycode == Input.Keys.Q) {
+            for (Cannon cannon : cannons){
+                if (cannon.getSideOfShip() == LEFT) cannon.stopChargingAndShoot();
+            }
+        }
+        if(keycode == Input.Keys.E) {
+            for (Cannon cannon : cannons){
+                if (cannon.getSideOfShip() == RIGHT) cannon.stopChargingAndShoot();
+            }
+        }
+
+        return false;
+    }
+
+    @Override
+    public boolean keyTyped(char character) {
+        return false;
+    }
+
+    @Override
+    public boolean touchDown(int screenX, int screenY, int pointer, int button) {
+        return false;
+    }
+
+    @Override
+    public boolean touchUp(int screenX, int screenY, int pointer, int button) {
+        return false;
+    }
+
+    @Override
+    public boolean touchDragged(int screenX, int screenY, int pointer) {
+        return false;
+    }
+
+    @Override
+    public boolean mouseMoved(int screenX, int screenY) {
+        return false;
+    }
+
+    @Override
+    public boolean scrolled(float amountX, float amountY) {
+        return false;
+    }
 }

@@ -12,6 +12,7 @@ import com.badlogic.gdx.ai.utils.RaycastCollisionDetector;
 import com.badlogic.gdx.graphics.g3d.ModelInstance;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.physics.box2d.BodyDef;
 import com.badlogic.gdx.physics.box2d.World;
 import com.piratecatai.game.pathfinding.Node;
@@ -36,10 +37,7 @@ public class NPCship extends Ship{
     SteeringBehavior steeringBehavior;
     LinePath pathToPlayer;
     CoolDownManager coolDownManager;
-    Vector2[] cannonsLocalPosition;
     int gunsCD;
-    protected final int LEFT = 0;
-    protected final int RIGHT = 1;
 
 
     public NPCship(ModelInstance instance, World world, float health, Player player,
@@ -54,8 +52,8 @@ public class NPCship extends Ship{
         coolDownManager.put("shootingCD",0f);
 
         cannonsLocalPosition = new Vector2[2];
-        cannonsLocalPosition[LEFT] = new Vector2(0,-10f);
-        cannonsLocalPosition[RIGHT] = new Vector2(0,10f);
+        cannonsLocalPosition[LEFT] = new Vector2(0,-20f);
+        cannonsLocalPosition[RIGHT] = new Vector2(0,20f);
 
         generateNewPathToPlayer();
 
@@ -178,28 +176,13 @@ public class NPCship extends Ship{
 
     }
 
-    public void shoot(int localDirection){
-        Vector2 direction;
-
-        switch(localDirection) {
-            case LEFT:
-                direction = new Vector2(0,-1f);
-                PirateCatAI.shoot(getWorldPointFromLocalBodyVector(cannonsLocalPosition[LEFT], body),
-                        getWorldVectorFromLocalBodyVector(direction, body),body.getLinearVelocity(), world);
-                break;
-            case RIGHT:
-                direction = new Vector2(0,1f);
-                PirateCatAI.shoot(getWorldPointFromLocalBodyVector(cannonsLocalPosition[RIGHT], body),
-                        getWorldVectorFromLocalBodyVector(direction, body),body.getLinearVelocity(), world);
-                break;
-
-        }
-
-    }
 
     @Override
     protected void setDestroyed() {
-        effectsManager.addStationaryParticleEffect(gameAssetManager.getEffectByName("betterExplosion"),getPos(4f));
+        effectsManager.addStationaryParticleEffect(gameAssetManager.getEffectByName("blastWave"),getPos(4f),
+                new Vector3(10f,10f,10f));
+        effectsManager.addStationaryParticleEffect(gameAssetManager.getEffectByName("betterExplosion"),getPos(4f),
+                new Vector3(6f,6f,6f));
         super.setDestroyed();
     }
 }

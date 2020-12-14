@@ -15,12 +15,20 @@ import java.util.HashMap;
 
 public class GameObject {
     public Body body;
-    private FixtureDef playerFixture;
     private Vector3 pos;
-    public Texture texture;
     public ModelInstance instance;
     public final Vector3 center = new Vector3();
+
+    public Vector3 getDimensions() {
+        return dimensions;
+    }
+
     public final Vector3 dimensions = new Vector3();
+
+    public static BoundingBox getBounds() {
+        return bounds;
+    }
+
     private final static BoundingBox bounds = new BoundingBox();
     protected float speed;
     protected World world;
@@ -36,14 +44,17 @@ public class GameObject {
         bounds.getCenter(center);
         bounds.getDimensions(dimensions);
 
-        pos = instance.transform.getTranslation(new Vector3());
+        this.pos = instance.transform.getTranslation(new Vector3());
 
         switch (typeOfShape){
             case "round":
-                body = PirateCatAI.bodycreator.makeCirclePolyBody(pos.x,pos.z,dimensions.x,1,bodyType,false);
+                body = PirateCatAI.bodycreator.makeCirclePolyBody(Box2DTranslator.getInstance().worldToBox2DFloat(pos.x)
+                        ,Box2DTranslator.getInstance().worldToBox2DFloat(pos.z),Box2DTranslator.getInstance().worldToBox2DFloat(dimensions.x)
+                        ,1,bodyType,false);
                 break;
             case "rect":
-                body = PirateCatAI.bodycreator.makeBoxPolyBody(pos.x,pos.z,dimensions.x,dimensions.y,1,bodyType,false);
+                body = PirateCatAI.bodycreator.makeBoxPolyBody(Box2DTranslator.getInstance().worldToBox2DFloat(pos.x)
+                        ,Box2DTranslator.getInstance().worldToBox2DFloat(pos.z),dimensions.x,dimensions.y,1,bodyType,false);
                 break;
         }
 
@@ -89,5 +100,9 @@ public class GameObject {
     public void setPos(Vector2 posBody){
         pos.x = posBody.x;
         pos.z = posBody.y;
+    }
+
+    public void setPosY(float posY){
+        pos.y = posY;
     }
 }

@@ -9,9 +9,20 @@ public class CannonBall extends DynamicGameObject {
     private static float healthCannonBall = 10;
 
     public CannonBall(ModelInstance instance, World world, Vector2 direction, Vector2 inertia){
-        super(instance, world, "round", BodyDef.BodyType.DynamicBody, healthCannonBall);
-        body.setLinearVelocity(direction.scl(300f).add(inertia));
+        this(instance,world,direction,inertia,300f);
     }
 
+    public CannonBall(ModelInstance instance, World world, Vector2 direction, Vector2 inertia, float velocity){
+        super(instance, world, "round", BodyDef.BodyType.DynamicBody, healthCannonBall);
+        body.setLinearVelocity(direction.scl(velocity).add(inertia));
+    }
 
+    @Override
+    public void update() {
+        super.update();
+        float y = getPos().y - 0.05f;
+        setPosY(y);
+        instance.transform.setTranslation(getPos());
+        if (getPos().y < -5) setDestroyed();
+    }
 }

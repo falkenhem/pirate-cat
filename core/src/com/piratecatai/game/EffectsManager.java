@@ -20,10 +20,10 @@ public class EffectsManager {
         this.particleSystem = particleSystem;
     }
 
-    public void addStationaryParticleEffect(ParticleEffect particleEffect, Vector3 pos){
+    public void addStationaryParticleEffect(ParticleEffect particleEffect, Vector3 pos, Vector3 scale){
         particleEffect.init();
         particleEffect.translate(pos);
-        particleEffect.scale(effectsScale,effectsScale,effectsScale);
+        particleEffect.scale(scale);
         particleSystem.add(particleEffect);
         stationaryEffects.add(particleEffect);
 

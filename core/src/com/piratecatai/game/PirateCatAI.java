@@ -1,9 +1,6 @@
 package com.piratecatai.game;
 
-import com.badlogic.gdx.ApplicationListener;
-import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Input;
-import com.badlogic.gdx.InputProcessor;
+import com.badlogic.gdx.*;
 import com.badlogic.gdx.assets.loaders.ModelLoader;
 import com.badlogic.gdx.graphics.*;
 import com.badlogic.gdx.graphics.g3d.*;
@@ -22,10 +19,12 @@ import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.JsonReader;
 import com.piratecatai.game.pathfinding.Graph;
 import com.piratecatai.game.pathfinding.NodeMapGenerator;
+import com.piratecatai.game.pathfinding.PixMapOfMap;
+
 import static com.badlogic.gdx.math.MathUtils.atan2;
 
 
-public class PirateCatAI implements ApplicationListener, InputProcessor {
+public class PirateCatAI implements ApplicationListener {
 	private static float time;
 	public Environment environment;
 	private static PerspectiveCamera cam;
@@ -46,22 +45,24 @@ public class PirateCatAI implements ApplicationListener, InputProcessor {
 	private Array<NPCship> npcships;
 	public static Array<ModelInstance> debugInstances;
 	protected static BodyCreator bodycreator;
-	protected Pixmap pixmap;
 	protected static  Graph nodeGraph;
 	private static DecalBatch decalBatch;
 	private static int mapWidth;
 	private static int mapHeight;
+	private GameObjectManager gameObjectManager;
 	private GameAssetManager gameAssetManager;
 	private EffectsManager effectsManager;
+	private PixMapOfMap pixMapOfMap;
 
 	@Override
 	public void create () {
 		mapWidth = 1200;
 		mapHeight = 1200;
 
-		pixmap = new Pixmap(Gdx.files.internal("pixMap.png"));
-
 		world = new World(new Vector2(0, 0f),true);
+
+		InputMultiplexer inputMultiplexer = new InputMultiplexer();
+		Gdx.input.setInputProcessor(inputMultiplexer);
 
 		allBodiesInWorld = new Array<Body>();
 		players = new Array<Player>();
@@ -70,7 +71,8 @@ public class PirateCatAI implements ApplicationListener, InputProcessor {
 		islands = new Array<Island>();
 		npcships = new Array<NPCship>();
 		debugInstances = new Array<ModelInstance>();
-		nodeGraph = NodeMapGenerator.generateGraph(pixmap);
+		pixMapOfMap = new PixMapOfMap();
+		gameObjectManager = new GameObjectManager();
 
 		bodycreator = BodyCreator.getInstance(world);
 
@@ -91,14 +93,17 @@ public class PirateCatAI implements ApplicationListener, InputProcessor {
 		gameAssetManager.loadParticleEffects(cam);
 		effectsManager = new EffectsManager(gameAssetManager.getParticleSystem());
 
-
 		//separate 3D import function later
 		ModelLoader modelLoader = new G3dModelLoader(new JsonReader());
 
 		model = modelLoader.loadModel(Gdx.files.internal("Simple_Pirate_Ship_y_up_x_forw.g3dj"));
 		playerInstance = new ModelInstance(model);
-		playerInstance.transform.setTranslation(0,0,0);
+		playerInstance.transform.setTranslation(400,0,400);
 		player = new Player(playerInstance, world, 300f, effectsManager, gameAssetManager);
+
+		gameAssetManager.loadModels(world, pixMapOfMap);
+
+		nodeGraph = NodeMapGenerator.generateGraph(pixMapOfMap.getMap());
 
 		for (int x =100 ; x<=1000 ; x+=400) {
 			NPCinstance = new ModelInstance(model);
@@ -115,6 +120,7 @@ public class PirateCatAI implements ApplicationListener, InputProcessor {
 			}
 
 		}
+
 		shader = new TestShader();
 		shader.init();
 
@@ -122,7 +128,7 @@ public class PirateCatAI implements ApplicationListener, InputProcessor {
 			@Override
 			public void beginContact(Contact contact) {
 				if (contact.getFixtureA().getBody().getUserData() instanceof DynamicGameObject
-						&& contact.getFixtureA().getBody().getUserData() instanceof DynamicGameObject) {
+						&& contact.getFixtureB().getBody().getUserData() instanceof DynamicGameObject) {
 					((DynamicGameObject) contact.getFixtureA().getBody().getUserData()).gotHit(1);
 					((DynamicGameObject) contact.getFixtureB().getBody().getUserData()).gotHit(1);
 				}
@@ -141,13 +147,13 @@ public class PirateCatAI implements ApplicationListener, InputProcessor {
 		});
 
 		decalBatch = new DecalBatch(new CameraGroupStrategy(cam));
+
 	}
 
 	@Override
 	public void render () {
 		debugInstances.clear();
 		time += Gdx.graphics.getDeltaTime();
-		Gdx.input.setInputProcessor(this);
 		Gdx.gl.glClearColor(135/255f, 206/255f, 235/255f, 1);
 
 		for (Body body:allBodiesInWorld) {
@@ -177,9 +183,8 @@ public class PirateCatAI implements ApplicationListener, InputProcessor {
 
 			if (body.getUserData() instanceof NPCship) ((NPCship) body.getUserData()).update(time);
 
-			if (body.getUserData() instanceof CannonBall) {
-				((CannonBall) body.getUserData()).instance.transform.setTranslation(body.getPosition().x,3,body.getPosition().y);
-			}
+			if (body.getUserData() instanceof CannonBall) ((CannonBall) body.getUserData()).update();
+
 			if (body.getUserData() instanceof Island) ((Island) body.getUserData()).instance.transform.setTranslation(body.getPosition().x,-10f,
 					body.getPosition().y);
 		}
@@ -187,20 +192,20 @@ public class PirateCatAI implements ApplicationListener, InputProcessor {
 		Gdx.gl.glViewport(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
 		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
 
-		cam.position.set(player.instance.transform.getTranslation(new Vector3()).add(0f, 120f, 120f));
+		cam.position.set(player.instance.transform.getTranslation(new Vector3()).add(0f, 80f, 80f));
 		cam.lookAt(player.instance.transform.getTranslation(new Vector3()));
 		cam.update();
 
 		modelBatch.begin(cam);
 		modelBatch.render(playerInstance, environment);
-		for (Island island : islands)
+		for (GameObject island : gameAssetManager.getGameObjects())
 			modelBatch.render(island.instance, environment);
 		for (CannonBall cannonBall : cannonBalls)
 			modelBatch.render(cannonBall.instance, environment);
 		for (NPCship npcship : npcships)
 			modelBatch.render(npcship.instance,environment);
-		for (ModelInstance instance : debugInstances)
-			modelBatch.render(instance,environment);
+		/*for (ModelInstance instance : debugInstances)
+			modelBatch.render(instance,environment);*/
 		for (ModelInstance instance : water)
 			modelBatch.render(instance,environment,shader);
 		modelBatch.end();
@@ -234,82 +239,10 @@ public class PirateCatAI implements ApplicationListener, InputProcessor {
 	}
 
 	@Override
-	public boolean scrolled(float amountX, float amountY) {
-		return false;
-	}
-
-	@Override
 	public void resume() {
+
 	}
 
-	@Override
-	public boolean keyDown(int keycode) {
-		if(keycode == Input.Keys.UP) {
-			player.moving = true;
-		}
-		if(keycode == Input.Keys.LEFT) {
-			player.turnLeft = true;
-		}
-		if(keycode == Input.Keys.RIGHT) {
-			player.turnRight = true;
-		}
-		if(keycode == Input.Keys.Q) {
-			player.shootingFromSide = 0;
-			player.shooting = true;
-		}
-		if(keycode == Input.Keys.E) {
-			player.shootingFromSide = 1;
-			player.shooting = true;
-		}
-
-		return true;
-	}
-
-	@Override
-	public boolean keyUp(int keycode) {
-		if(keycode == Input.Keys.RIGHT) {
-			player.turnRight = false;
-
-		}
-
-		if(keycode == Input.Keys.LEFT) {
-			player.turnLeft = false;
-
-		}
-
-		if(keycode == Input.Keys.UP) {
-			player.moving = false;
-
-		}
-
-		return true;
-	}
-
-	@Override
-	public boolean keyTyped(char character) {
-		return false;
-	}
-
-	@Override
-	public boolean touchDown(int screenX, int screenY, int pointer, int button) {
-
-		return true;
-	}
-
-	@Override
-	public boolean touchUp(int screenX, int screenY, int pointer, int button) {
-		return true;
-	}
-
-	@Override
-	public boolean touchDragged(int screenX, int screenY, int pointer) {
-		return true;
-	}
-
-	@Override
-	public boolean mouseMoved(int screenX, int screenY) {
-		return true;
-	}
 
 	public static float getTime(){return time;}
 	public static float getAngleFromBodyOnWave(Body body){
@@ -332,7 +265,7 @@ public class PirateCatAI implements ApplicationListener, InputProcessor {
 		return angle;
 	}
 
-	public static void shoot(Vector2 origin, Vector2 direction, Vector2 inertia, World world){
+	public static void shoot(Vector2 origin, Vector2 direction, Vector2 inertia, World world, float velocity, float size){
 		//replace this with a pool
 
 		Model model;
@@ -340,18 +273,18 @@ public class PirateCatAI implements ApplicationListener, InputProcessor {
 		ModelInstance instance;
 		modelBuilder = new ModelBuilder();
 
-		model = modelBuilder.createSphere(4f,4f,4f,4,4,
-				new Material(ColorAttribute.createDiffuse(Color.DARK_GRAY)), VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal);
+		model = modelBuilder.createSphere(size,size,size,20,20,
+				new Material(ColorAttribute.createDiffuse(Color.DARK_GRAY)),
+				VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal);
 		instance = new ModelInstance(model);
 
-		origin = new Vector2(origin.x + direction.x*15f,origin.y + direction.y*15f);
+		origin = new Vector2(origin.x,origin.y);
 
 		direction = new Vector2(direction.x, direction.y);
 
 		instance.transform.setTranslation(origin.x,3,origin.y);
 
-		PirateCatAI.cannonBalls.add(new CannonBall(instance, world, direction,inertia));
-
+		PirateCatAI.cannonBalls.add(new CannonBall(instance, world, direction,inertia,velocity));
 
 	}
 
