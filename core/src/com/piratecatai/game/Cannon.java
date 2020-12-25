@@ -8,6 +8,7 @@ public class Cannon {
     private Vector2 positionRelativeShip;
     private int sideOfShip;
     private float charge;
+    private float size;
     private boolean charging;
     private boolean shooting;
     protected final int LEFT = 0;
@@ -19,6 +20,7 @@ public class Cannon {
         this.positionRelativeShip = positionRelativeShip;
         this.sideOfShip = sideOfShip;
         charge = 0;
+        size = 4f;
         charging = false;
         shooting = false;
     }
@@ -39,16 +41,18 @@ public class Cannon {
         float velocity;
 
         if (charge > 2){
-            velocity = 100f;
-        } else velocity = 20f;
-
-        System.out.println(velocity);
+            velocity = 5f;
+            size = 10f;
+        } else {
+            velocity = 1f;
+            size = 4f;
+        }
 
         return velocity;
     }
 
     private void shoot(){
-        owner.shoot(sideOfShip, getVelocityFromCharge(), 4f);
+        owner.shoot(sideOfShip, getVelocityFromCharge(), size);
         resetCharge();
     }
 
@@ -71,5 +75,9 @@ public class Cannon {
 
     public int getSideOfShip() {
         return sideOfShip;
+    }
+
+    public boolean isCharging() {
+        return charging;
     }
 }

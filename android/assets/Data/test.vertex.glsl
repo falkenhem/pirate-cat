@@ -11,18 +11,20 @@ varying vec3 ScreenPosition;
 varying vec2 v_texCoord0;
 varying float v_z;
 
+varying vec3 WorldPosition;
+
 void main() {
     v_texCoord0 = a_texCoord0;
 
     vec3 pos = a_position;
 
     pos.z = cos(pos.y * 3.0 * 3.1415 + u_time) * 0.05 * sin(pos.x * 3.0 * 3.1415 + u_time);
-    //pos.z = cos(pos.y * 1.0 * 3.1415 + u_time) * 0.1;
-    //pos.z = sin(u_time);
+
     v_z = pos.z;
     gl_Position = u_projViewTrans * u_worldTrans * vec4(pos, 1.0);
-    //gl_Position = u_projViewTrans * u_worldTrans * vec4(pos, 1.0);
-    //ScreenPosition = gl_Position.xyz;
+
+    WorldPosition = pos;
+
 }
 
 

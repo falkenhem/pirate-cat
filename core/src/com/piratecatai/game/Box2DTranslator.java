@@ -13,7 +13,7 @@ public class Box2DTranslator {
         return instance;
     }
 
-    public Vector2 box2dToWorldCoordinates(Vector2 box2dVector){
+    public Vector2 box2dToWorldVector(Vector2 box2dVector){
         Vector2 worldVector = new Vector2();
         worldVector = box2dVector.scl(scale);
         return worldVector;

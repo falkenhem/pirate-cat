@@ -23,7 +23,7 @@ public class NPCship extends Ship{
     float distanceToPlayer;
     float speed;
     Player player;
-    final float interceptScalar = 0.1f;
+    final float interceptScalar = 0.0f;
     protected StateMachine<NPCship, NPCshipState> stateMachine;
     SteeringAcceleration<Vector2> steering;
     CentralRayWithWhiskersConfiguration<Vector2> rayConfig;
@@ -43,7 +43,7 @@ public class NPCship extends Ship{
     public NPCship(ModelInstance instance, World world, float health, Player player,
                    EffectsManager effectsManager, GameAssetManager gameAssetManager){
         super(instance, world, "round", BodyDef.BodyType.DynamicBody, health, effectsManager, gameAssetManager);
-        this.speed = 10f;
+        this.speed = 1f;
         this.pitch = 0;
         this.player = player;
         gunsCD = 5000;
@@ -52,19 +52,19 @@ public class NPCship extends Ship{
         coolDownManager.put("shootingCD",0f);
 
         cannonsLocalPosition = new Vector2[2];
-        cannonsLocalPosition[LEFT] = new Vector2(0,-20f);
-        cannonsLocalPosition[RIGHT] = new Vector2(0,20f);
+        cannonsLocalPosition[LEFT] = new Vector2(0,-2f);
+        cannonsLocalPosition[RIGHT] = new Vector2(0,2f);
 
         generateNewPathToPlayer();
 
         steering= new SteeringAcceleration<Vector2>(new Vector2());
         matchVelocity = new MatchVelocity<Vector2>(steerable,player.getSteerable());
-        followPath = new FollowPath(steerable,pathToPlayer,50);
+        followPath = new FollowPath(steerable,pathToPlayer,5);
         followPath.setArriveEnabled(false);
-        rayConfig = new CentralRayWithWhiskersConfiguration<Vector2>(steerable, 60,
-                55, 45 * MathUtils.degreesToRadians);
+        rayConfig = new CentralRayWithWhiskersConfiguration<Vector2>(steerable, 6,
+                5.5f, 45 * MathUtils.degreesToRadians);
         raycastCollisionDetector = new Box2dRaycastCollisionDetector(world);
-        raycastObstacleAvoidance = new RaycastObstacleAvoidance<>(steerable,rayConfig,raycastCollisionDetector,12f);
+        raycastObstacleAvoidance = new RaycastObstacleAvoidance<>(steerable,rayConfig,raycastCollisionDetector,1.2f);
         pursue = new Pursue<Vector2>(steerable,player.getSteerable());
 
         prioritySteeringPursue = new PrioritySteering<Vector2>(steerable, 0.001f)
@@ -77,13 +77,9 @@ public class NPCship extends Ship{
     }
 
     public void update(float time){
-        super.update();
-        distanceToPlayer = body.getPosition().dst(player.body.getPosition());
+        super.update(time);
+        distanceToPlayer = getPos2D().dst(player.getPos2D());
         stateMachine.update();
-        instance.transform.setFromEulerAnglesRad(body.getAngle() - MathUtils.PI/2,pitch, PirateCatAI.getAngleFromBodyOnWave(body));
-        instance.transform.setTranslation(body.getPosition().x,
-                100f*(MathUtils.cos(-body.getPosition().y/100 * 3.0f * 3.1415f + time) * 0.05f *
-                        MathUtils.sin(body.getPosition().x/100 * 3.0f * 3.1415f + time))-3f, body.getPosition().y);
     }
 
     public float getTimeUntilInterceptPlayer(){
@@ -131,8 +127,8 @@ public class NPCship extends Ship{
 
         futurePositionPlayer = player.getFuturePositionWithTime(getTimeUntilInterceptPlayer() * interceptScalar);
 
-        closestNodeToNPCship = PirateCatAI.nodeGraph.getNodeByCoordinates(body.getPosition());
-        closestNodeToPlayer = PirateCatAI.nodeGraph.getNodeByCoordinates(futurePositionPlayer);
+        closestNodeToNPCship = PirateCatAI.nodeGraph.getNodeByCoordinates(Box2DTranslator.getInstance().worldToBox2DVector(getPos2D()));
+        closestNodeToPlayer = PirateCatAI.nodeGraph.getNodeByCoordinates(Box2DTranslator.getInstance().worldToBox2DVector(futurePositionPlayer));
 
         if (closestNodeToNPCship != closestNodeToPlayer){
             pathToPlayer = PirateCatAI.nodeGraph.findPath(closestNodeToNPCship,closestNodeToPlayer);
@@ -180,7 +176,7 @@ public class NPCship extends Ship{
     @Override
     protected void setDestroyed() {
         effectsManager.addStationaryParticleEffect(gameAssetManager.getEffectByName("blastWave"),getPos(4f),
-                new Vector3(10f,10f,10f));
+                new Vector3(8f,8f,8f));
         effectsManager.addStationaryParticleEffect(gameAssetManager.getEffectByName("betterExplosion"),getPos(4f),
                 new Vector3(6f,6f,6f));
         super.setDestroyed();

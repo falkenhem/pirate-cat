@@ -10,13 +10,12 @@ public abstract class Ship extends DynamicGameObject{
     protected float pitch;
     private HealthBar healthBar;
     Vector2[] cannonsLocalPosition;
-    int gunsCD;
     protected final int LEFT = 0;
     protected final int RIGHT = 1;
 
     public Ship(ModelInstance instanceArg, World world, String typeOfShape, BodyDef.BodyType bodyType, float health,
                 EffectsManager effectsManager, GameAssetManager gameAssetManager) {
-        super(instanceArg, world, typeOfShape, bodyType, health, effectsManager, gameAssetManager);
+        super(instanceArg, world, typeOfShape, bodyType, health, effectsManager, gameAssetManager,10f);
         healthBar = new HealthBar(getPos());
     }
 
@@ -24,8 +23,12 @@ public abstract class Ship extends DynamicGameObject{
         return healthBar;
     }
 
-    public void update(){
+    public void update(float time){
         super.update();
+        instance.transform.setFromEulerAnglesRad(body.getAngle() - MathUtils.PI/2,pitch, PirateCatAI.getAngleFromBodyOnWave(body));
+        instance.transform.setTranslation(getPos().x,
+                100f*(MathUtils.cos(-getPos().z/100 * 3.0f * 3.1415f + time) * 0.05f *
+                        MathUtils.sin(getPos().x/100 * 3.0f * 3.1415f + time))-1f, getPos().z);
         float percentHealth = getHealth()/getMaxHealth();
         healthBar.update(percentHealth,getPos());
         healthBar.getDecal().lookAt(PirateCatAI.getCam().position,PirateCatAI.getCam().up);

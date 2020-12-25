@@ -82,7 +82,7 @@ public class Graph implements IndexedGraph<Node> {
 
         for(int i = 0; i < graphPath.getCount(); i++){
             Node node = (Node)graphPath.get(i);
-            linePathPoints.add(new Vector2(node.getX()* 20f + 10f,node.getY()* 20f + 10f));
+            linePathPoints.add(new Vector2(node.getX()* 2f + 1f,node.getY()* 2f + 1f));
             instance = new ModelInstance(model,new Vector3(node.getX()*20f + 10f,0,node.getY() * 20f + 10f));
             PirateCatAI.debugInstances.add(instance);
         }

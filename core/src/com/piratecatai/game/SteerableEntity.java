@@ -62,7 +62,7 @@ public class SteerableEntity implements Steerable {
 
     @Override
     public float getMaxLinearAcceleration() {
-        return 10f;
+        return 1f;
     }
 
     @Override

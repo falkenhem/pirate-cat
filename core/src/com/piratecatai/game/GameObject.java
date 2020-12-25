@@ -1,17 +1,12 @@
 package com.piratecatai.game;
 
-import com.badlogic.gdx.graphics.Pixmap;
-import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g3d.ModelInstance;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.math.collision.BoundingBox;
 import com.badlogic.gdx.physics.box2d.Body;
 import com.badlogic.gdx.physics.box2d.BodyDef;
-import com.badlogic.gdx.physics.box2d.FixtureDef;
 import com.badlogic.gdx.physics.box2d.World;
-
-import java.util.HashMap;
 
 public class GameObject {
     public Body body;
@@ -74,6 +69,8 @@ public class GameObject {
         //turn vectors an additional 90degrees because model is turned incorrectly FIX THIS! when using proper assets
         worldVector = new Vector2(worldVector.y, -worldVector.x);
 
+        worldVector = Box2DTranslator.getInstance().box2dToWorldVector(worldVector);
+
         return worldVector;
     }
 
@@ -86,23 +83,38 @@ public class GameObject {
 
         worldPoint = worldPoint.add(body.getPosition());
 
+        worldPoint = Box2DTranslator.getInstance().box2dToWorldVector(worldPoint);
+
         return worldPoint;
     }
 
     public Vector3 getPos() {
         return pos;
     }
+
+    public Vector2 getPos2D(){
+        Vector2 vector = new Vector2(pos.x,pos.z);
+        return vector;
+    }
     public Vector3 getPos(Float setY) {
         if (setY != null) return new Vector3(pos.x,setY,pos.z);
         else return pos;
     }
 
+    public void update(){
+        setPos(body.getPosition());
+    }
+
     public void setPos(Vector2 posBody){
-        pos.x = posBody.x;
-        pos.z = posBody.y;
+        pos.x = Box2DTranslator.getInstance().box2dToWorldFloat(posBody.x);
+        pos.z = Box2DTranslator.getInstance().box2dToWorldFloat(posBody.y);
     }
 
     public void setPosY(float posY){
         pos.y = posY;
+    }
+
+    public Body getBody() {
+        return body;
     }
 }

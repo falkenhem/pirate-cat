@@ -5,6 +5,7 @@ import com.badlogic.gdx.ai.pfa.Connection;
 import com.badlogic.gdx.ai.pfa.DefaultConnection;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Array;
+import com.piratecatai.game.Box2DTranslator;
 
 public class Node implements Connection<Node> {
     protected final int x;
@@ -18,6 +19,7 @@ public class Node implements Connection<Node> {
         this.x = x;
         this.y = y;
         this.worldPos = new Vector2(x * 20f + 10f,y * 20f + 10f);
+        worldPos = Box2DTranslator.getInstance().worldToBox2DVector(worldPos);
     }
 
     public Vector2 getWorldPosition(){

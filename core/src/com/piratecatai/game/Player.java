@@ -16,11 +16,10 @@ public class Player extends Ship implements InputProcessor {
     boolean moving;
     boolean turnRight;
     boolean turnLeft;
-    boolean shooting;
-    boolean chargingShot;
     private Array<Cannon> cannons = new Array<>();
+    //private ChargingArrow arrow;
+    private Array<ChargingArrow> arrows = new Array<>();
     float gunsCD;
-    int shootingFromSide;
     int numCannons;
 
 
@@ -31,34 +30,36 @@ public class Player extends Ship implements InputProcessor {
         pitch = 0;
         gunsCD = 0f;
         numCannons = 1;
-        chargingShot = false;
+        speed = 5;
 
         cannonsLocalPosition = new Vector2[2];
-        cannonsLocalPosition[LEFT] = new Vector2(0,-20f);
-        cannonsLocalPosition[RIGHT] = new Vector2(0,20f);
+        cannonsLocalPosition[LEFT] = new Vector2(0,-2f);
+        cannonsLocalPosition[RIGHT] = new Vector2(0,2f);
 
-        cannons.add(new Cannon(this, new Vector2(0,-20), LEFT));
-        cannons.add(new Cannon(this, new Vector2(0,-20), RIGHT));
+        cannons.add(new Cannon(this, new Vector2(0,-2), LEFT));
+        cannons.add(new Cannon(this, new Vector2(0,2), RIGHT));
+
+        arrows.add(new ChargingArrow(this, new Vector2(0, -1), GameAssetManager.getInstance().getModelByName(), cannons.get(0), new ArrowShader()));
+        arrows.add(new ChargingArrow(this, new Vector2(0, 1), GameAssetManager.getInstance().getModelByName(), cannons.get(1), new ArrowShader()));
     }
 
     public void update(float time){
-        super.update();
+        super.update(time);
+
+        //change to all accessories
+        for (ChargingArrow arrow : arrows){
+            arrow.update();
+        }
 
         body.setAngularVelocity(0f);
 
         if (moving){
-            body.setLinearVelocity(MathUtils.cos(body.getAngle()- MathUtils.PI/2) * 40f,-MathUtils.sin(body.getAngle()- MathUtils.PI/2) * 40f);
+            body.setLinearVelocity(MathUtils.cos(body.getAngle()- MathUtils.PI/2) * speed
+                    ,-MathUtils.sin(body.getAngle()- MathUtils.PI/2) * speed);
         } else body.setLinearDamping(1f);
 
         turnAndSetPitch();
 
-        instance.transform.setFromEulerAnglesRad(body.getAngle() - MathUtils.PI/2,pitch, PirateCatAI.getAngleFromBodyOnWave(body));
-        instance.transform.setTranslation(body.getPosition().x,
-                100f*(MathUtils.cos(-body.getPosition().y/100 * 3.0f * 3.1415f + time) * 0.05f *
-                        MathUtils.sin(body.getPosition().x/100 * 3.0f * 3.1415f + time))-3f, body.getPosition().y);
-
-        /*if (shooting) shoot(shootingFromSide);
-        shooting = false;*/
 
         for (Cannon cannon : cannons){
             cannon.update();
@@ -88,13 +89,17 @@ public class Player extends Ship implements InputProcessor {
 
     public Vector2 getFuturePositionWithTime(float time){
         Vector2 futurePosition;
-        futurePosition = body.getPosition().add(body.getLinearVelocity().scl(time/ Gdx.graphics.getDeltaTime()));
+        futurePosition = getPos2D().add(getWorldVelocity().scl(time/ Gdx.graphics.getDeltaTime()));
 
         return futurePosition;
     }
 
     public Vector2 getPosition(){
         return body.getPosition();
+    }
+
+    public Array<ChargingArrow> getRenderableAccessories(){
+        return arrows;
     }
 
     @Override

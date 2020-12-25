@@ -7,6 +7,7 @@ import com.badlogic.gdx.assets.loaders.resolvers.InternalFileHandleResolver;
 import com.badlogic.gdx.graphics.Camera;
 import com.badlogic.gdx.graphics.g3d.Model;
 import com.badlogic.gdx.graphics.g3d.ModelInstance;
+import com.badlogic.gdx.graphics.g3d.attributes.BlendingAttribute;
 import com.badlogic.gdx.graphics.g3d.loader.G3dModelLoader;
 import com.badlogic.gdx.graphics.g3d.particles.ParticleEffect;
 import com.badlogic.gdx.graphics.g3d.particles.ParticleEffectLoader;
@@ -20,23 +21,34 @@ import com.badlogic.gdx.utils.JsonReader;
 import com.piratecatai.game.pathfinding.PixMapOfMap;
 
 public class GameAssetManager extends AssetManager {
+    private static GameAssetManager instance;
     private ParticleSystem particleSystem;
     private Array<Vector2> islandLocations;
     private Array<GameObject> gameObjects = new Array<>();
+    private Model arrowModel;
     ModelLoader modelLoader = new G3dModelLoader(new JsonReader());
+
+    public static GameAssetManager getInstance(){
+        if(instance == null){
+            instance = new GameAssetManager();
+        }
+        return instance;
+    }
 
     public void loadModels(World world, PixMapOfMap pixMapOfMap){
         islandLocations = new Array<>();
         islandLocations.add(new Vector2(100,200),new Vector2(800,800), new Vector2(550,300), new Vector2(250,840));
-        Model model = modelLoader.loadModel(Gdx.files.internal("island.g3dj"));
+        Model model = modelLoader.loadModel(Gdx.files.internal("kenneyisland.g3dj"));
 
         for (Vector2 pos : islandLocations){
             ModelInstance islandInstance = new ModelInstance(model);
             islandInstance.transform.setTranslation(pos.x,0,pos.y);
             Island island = new Island(islandInstance, world);
             gameObjects.add(island);
-            pixMapOfMap.drawCircularObject(pos,island.getDimensions().x/2);
+            pixMapOfMap.drawCircularObject(pos,island.getDimensions().y/2);
         }
+
+        arrowModel = modelLoader.loadModel(Gdx.files.internal("arrow.g3dj"));
     }
 
     public Array<GameObject> getGameObjects(){
@@ -59,6 +71,7 @@ public class GameAssetManager extends AssetManager {
         setLoader(ParticleEffect.class, loader);
         load("blastWave", ParticleEffect.class, loadParam);
         load("betterExplosion", ParticleEffect.class, loadParam);
+        load("smokeTrail", ParticleEffect.class, loadParam);
         //Change for loading bar later
         finishLoading();
 
@@ -71,6 +84,10 @@ public class GameAssetManager extends AssetManager {
     public ParticleEffect getEffectByName(String name){
         ParticleEffect effect = get(name, ParticleEffect.class).copy();
         return effect;
+    }
+
+    public Model getModelByName(){
+        return arrowModel;
     }
 
 }

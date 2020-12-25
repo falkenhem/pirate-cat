@@ -37,13 +37,11 @@ public enum NPCshipState implements State<NPCship> {
             if (ship.distanceToPlayer > 120) ship.stateMachine.changeState(PURSUE_PLAYER);
 
             if (ship.checkIfPlayerInShootingRange(ship.LEFT) && ship.coolDownManager.done("shootingCD")) {
-                ship.shoot(ship.LEFT, 300f, 4f);
-                System.out.println("LEFT");
+                ship.shoot(ship.LEFT, 3f, 4f);
                 ship.coolDownManager.put("shootingCD", 1f);
             }
             if (ship.checkIfPlayerInShootingRange(ship.RIGHT) && ship.coolDownManager.done("shootingCD")) {
-                ship.shoot(ship.RIGHT, 300f, 4f);
-                System.out.println("RIGHT");
+                ship.shoot(ship.RIGHT, 3f, 4f);
                 ship.coolDownManager.put("shootingCD", 1f);
             }
         }

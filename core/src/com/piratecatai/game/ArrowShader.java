@@ -8,11 +8,10 @@ import com.badlogic.gdx.graphics.g3d.Renderable;
 import com.badlogic.gdx.graphics.g3d.Shader;
 import com.badlogic.gdx.graphics.g3d.utils.RenderContext;
 import com.badlogic.gdx.graphics.glutils.ShaderProgram;
-import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.GdxRuntimeException;
 
 
-public class TestShader implements Shader {
+public class ArrowShader implements Shader {
     ShaderProgram program;
     Camera camera;
     RenderContext context;
@@ -24,10 +23,10 @@ public class TestShader implements Shader {
 
     @Override
     public void init() {
-        texture = new Texture(Gdx.files.internal("waves.png"));
-        texture.setWrap(Texture.TextureWrap.Repeat, Texture.TextureWrap.Repeat);
-        String vert = Gdx.files.internal("Data/test.vertex.glsl").readString();
-        String frag = Gdx.files.internal("Data/test.fragment.glsl").readString();
+        texture = new Texture(Gdx.files.internal("erikf.png"));
+        //texture.setWrap(Texture.TextureWrap.Repeat, Texture.TextureWrap.Repeat);
+        String vert = Gdx.files.internal("Data/arrow.vertex.glsl").readString();
+        String frag = Gdx.files.internal("Data/arrow.fragment.glsl").readString();
         program = new ShaderProgram(vert, frag);
         //ShaderProgram.pedantic = false;
         if (!program.isCompiled()) {
@@ -37,6 +36,7 @@ public class TestShader implements Shader {
         u_projViewTrans = program.getUniformLocation("u_projViewTrans");
         u_worldTrans = program.getUniformLocation("u_worldTrans");
         u_color = program.getUniformLocation("u_color");
+        time = 0;
     }
 
     @Override
@@ -50,29 +50,25 @@ public class TestShader implements Shader {
         this.context = context;
         program.bind();
         program.setUniformMatrix(u_projViewTrans, camera.combined);
-        context.setBlending(true,1,1);
+        context.setBlending(true, GL20.GL_SRC_ALPHA,GL20.GL_ONE_MINUS_SRC_ALPHA);
     }
 
     @Override
     public void render(Renderable renderable) {
-        time = PirateCatAI.getTime();
+        time += Gdx.graphics.getDeltaTime();
         program.setUniformMatrix(u_worldTrans, renderable.worldTransform);
         program.setUniformf("u_time",time);
-        program.setUniformi("uSurfaceTexture", context.textureBinder.bind(texture));
-        /*float f = camera.far;
-        float n = camera.near;
-        program.setUniformf("u_camera_params", 1f);
-        program.setUniformf("camera_params", new Vector3(1/f,
-                f,
-                (1-f / n) / 2));
-        float camera_paramsW = (1 + f / n) / 2;*/
-
+        //program.setUniformi("uSurfaceTexture", context.textureBinder.bind(texture));
         renderable.meshPart.render(program);
     }
 
     @Override
     public void end() {
         program.end();
+    }
+
+    public void reset(){
+        time = 0;
     }
 
     @Override

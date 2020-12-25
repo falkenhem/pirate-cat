@@ -6,6 +6,7 @@ import com.badlogic.gdx.graphics.*;
 import com.badlogic.gdx.graphics.g3d.*;
 import com.badlogic.gdx.graphics.g3d.attributes.BlendingAttribute;
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
+import com.badlogic.gdx.graphics.g3d.attributes.IntAttribute;
 import com.badlogic.gdx.graphics.g3d.decals.CameraGroupStrategy;
 import com.badlogic.gdx.graphics.g3d.decals.DecalBatch;
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight;
@@ -29,6 +30,7 @@ public class PirateCatAI implements ApplicationListener {
 	public Environment environment;
 	private static PerspectiveCamera cam;
 	public Shader shader;
+	private ArrowShader arrowShader;
 	public ModelBatch modelBatch;
 	public Model model;
 	private ModelInstance playerInstance;
@@ -50,8 +52,6 @@ public class PirateCatAI implements ApplicationListener {
 	private static int mapWidth;
 	private static int mapHeight;
 	private GameObjectManager gameObjectManager;
-	private GameAssetManager gameAssetManager;
-	private EffectsManager effectsManager;
 	private PixMapOfMap pixMapOfMap;
 
 	@Override
@@ -75,40 +75,45 @@ public class PirateCatAI implements ApplicationListener {
 		gameObjectManager = new GameObjectManager();
 
 		bodycreator = BodyCreator.getInstance(world);
+		GameAssetManager.getInstance().loadModels(world, pixMapOfMap);
 
 		environment = new Environment();
-		environment.set(new ColorAttribute(ColorAttribute.AmbientLight, 0.4f, 0.4f, 0.4f, 1f));
-		environment.add(new DirectionalLight().set(0.8f, 0.8f, 0.8f, -1f, -0.8f, -0.2f));
+		environment.set(new ColorAttribute(ColorAttribute.AmbientLight, 0.7f, 0.7f, 0.3f, 1f));
+		environment.add(new DirectionalLight().set(0.9f, 0.9f, 0.7f, -0.2f, -0.8f, -0.2f));
 
 		modelBatch = new ModelBatch();
 
 		cam = new PerspectiveCamera(67, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
 		cam.position.set(0f, 200f, 0f);
 		cam.lookAt(0,0,0);
-		cam.near = 20f;
-		cam.far = 1000f;
+		cam.near = 1f;
+		cam.far = 500f;
 		cam.update();
 
-		gameAssetManager = new GameAssetManager();
-		gameAssetManager.loadParticleEffects(cam);
-		effectsManager = new EffectsManager(gameAssetManager.getParticleSystem());
+
+		GameAssetManager.getInstance().loadParticleEffects(cam);
+		//effectsManager = new EffectsManager(GameAssetManager.getInstance().getParticleSystem());
+		shader = new TestShader();
+		shader.init();
 
 		//separate 3D import function later
 		ModelLoader modelLoader = new G3dModelLoader(new JsonReader());
 
-		model = modelLoader.loadModel(Gdx.files.internal("Simple_Pirate_Ship_y_up_x_forw.g3dj"));
+		model = modelLoader.loadModel(Gdx.files.internal("playership.g3dj"));
+		for (Material mat : model.materials) { mat.set(new IntAttribute(IntAttribute.CullFace, 0)); }
 		playerInstance = new ModelInstance(model);
 		playerInstance.transform.setTranslation(400,0,400);
-		player = new Player(playerInstance, world, 300f, effectsManager, gameAssetManager);
+		player = new Player(playerInstance, world, 300f, EffectsManager.getInstance(), GameAssetManager.getInstance());
 
-		gameAssetManager.loadModels(world, pixMapOfMap);
-
+		model = modelLoader.loadModel(Gdx.files.internal("Simple_Pirate_Ship_y_up_x_forw.g3dj"));
 		nodeGraph = NodeMapGenerator.generateGraph(pixMapOfMap.getMap());
 
-		for (int x =100 ; x<=1000 ; x+=400) {
-			NPCinstance = new ModelInstance(model);
-			NPCinstance.transform.setTranslation(x,-3f,0f);
-			npcships.add(new NPCship(NPCinstance, world, 100f, player, effectsManager, gameAssetManager));
+		for (int x =100 ; x<=1000 ; x+=500) {
+			for (int z = 100; z <= 1000; z+=500) {
+				NPCinstance = new ModelInstance(model);
+				NPCinstance.transform.setTranslation(x, -3f, z);
+				npcships.add(new NPCship(NPCinstance, world, 100f, player, EffectsManager.getInstance(), GameAssetManager.getInstance()));
+			}
 		}
 
 
@@ -120,9 +125,6 @@ public class PirateCatAI implements ApplicationListener {
 			}
 
 		}
-
-		shader = new TestShader();
-		shader.init();
 
 		world.setContactListener(new ContactListener() {
 			@Override
@@ -185,20 +187,21 @@ public class PirateCatAI implements ApplicationListener {
 
 			if (body.getUserData() instanceof CannonBall) ((CannonBall) body.getUserData()).update();
 
-			if (body.getUserData() instanceof Island) ((Island) body.getUserData()).instance.transform.setTranslation(body.getPosition().x,-10f,
-					body.getPosition().y);
+			if (body.getUserData() instanceof Island) ((Island) body.getUserData()).update();
 		}
+
+		EffectsManager.getInstance().update();
 
 		Gdx.gl.glViewport(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
 		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
 
-		cam.position.set(player.instance.transform.getTranslation(new Vector3()).add(0f, 80f, 80f));
+		cam.position.set(player.instance.transform.getTranslation(new Vector3()).add(0f, 140f, 130f));
 		cam.lookAt(player.instance.transform.getTranslation(new Vector3()));
 		cam.update();
 
 		modelBatch.begin(cam);
 		modelBatch.render(playerInstance, environment);
-		for (GameObject island : gameAssetManager.getGameObjects())
+		for (GameObject island : GameAssetManager.getInstance().getGameObjects())
 			modelBatch.render(island.instance, environment);
 		for (CannonBall cannonBall : cannonBalls)
 			modelBatch.render(cannonBall.instance, environment);
@@ -211,14 +214,19 @@ public class PirateCatAI implements ApplicationListener {
 		modelBatch.end();
 
 		modelBatch.begin(cam);
-		gameAssetManager.getParticleSystem().update();
-		gameAssetManager.getParticleSystem().begin();
-		gameAssetManager.getParticleSystem().draw();
-		modelBatch.render(gameAssetManager.getParticleSystem());
-		gameAssetManager.getParticleSystem().end();
+		for (ChargingArrow arrow : player.getRenderableAccessories()){
+			if (arrow.shouldRender()) {
+				modelBatch.render(arrow.getInstance(),arrow.getArrowShader());
+			}
+		}
+		GameAssetManager.getInstance().getParticleSystem().update();
+		GameAssetManager.getInstance().getParticleSystem().begin();
+		GameAssetManager.getInstance().getParticleSystem().draw();
+		modelBatch.render(GameAssetManager.getInstance().getParticleSystem());
 		modelBatch.end();
+		GameAssetManager.getInstance().getParticleSystem().end();
 
-		effectsManager.stopEmissionStationaryEffects();
+		EffectsManager.getInstance().stopEmissionStationaryEffects();
 
 		decalBatch.flush();
 
@@ -266,25 +274,35 @@ public class PirateCatAI implements ApplicationListener {
 	}
 
 	public static void shoot(Vector2 origin, Vector2 direction, Vector2 inertia, World world, float velocity, float size){
-		//replace this with a pool
+		//replace this with a pool set arguments in cannon and send in cannon as argument
 
 		Model model;
 		ModelBuilder modelBuilder;
 		ModelInstance instance;
 		modelBuilder = new ModelBuilder();
 
-		model = modelBuilder.createSphere(size,size,size,20,20,
+		float strength = size;
+
+		model = modelBuilder.createSphere(2,2,2,20,20,
 				new Material(ColorAttribute.createDiffuse(Color.DARK_GRAY)),
 				VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal);
-		instance = new ModelInstance(model);
 
 		origin = new Vector2(origin.x,origin.y);
 
 		direction = new Vector2(direction.x, direction.y);
+		Vector2 scalar = inertia.nor();
 
-		instance.transform.setTranslation(origin.x,3,origin.y);
+		for (int i = 0 ; i <= size ; i++) {
+			float offset = -1.25f*size + i*2.5f;
+			Vector2 pos = new Vector2();
+			pos.x = origin.x + scalar.x*offset;
+			pos.y = origin.y + scalar.y*offset;
 
-		PirateCatAI.cannonBalls.add(new CannonBall(instance, world, direction,inertia,velocity));
+			instance = new ModelInstance(model);
+			instance.transform.setTranslation(pos.x, 3, pos.y);
+
+			PirateCatAI.cannonBalls.add(new CannonBall(instance, world, direction, inertia, velocity, strength));
+		}
 
 	}
 
@@ -314,5 +332,9 @@ public class PirateCatAI implements ApplicationListener {
 
 	public static int getMapWidth() {
 		return mapWidth;
+	}
+
+	public ArrowShader getArrowShader() {
+		return arrowShader;
 	}
 }
