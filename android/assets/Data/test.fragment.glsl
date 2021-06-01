@@ -47,9 +47,16 @@ float getLinearScreenDepth() {
     return getLinearScreenDepth(uv);
 }
 
+float LinearizeDepth(float depth)
+{
+    float z = depth * 2.0 - 1.0; // back to NDC
+    float rfloat = (2.0 * 1.0 * 800.0) / (800.0 + 1.0 - z * (800.0 - 1.0));
+    return rfloat;
+}
+
 void main() {
 
-    vec4 color = vec4(0.0,0.7,1.0,0.5);
+    vec4 color = vec4(0.0,0.7,1.0,0.7);
 
     vec2 pos = v_texCoord0;
 
@@ -57,9 +64,11 @@ void main() {
 
     vec4 WaterLines = texture2D(uSurfaceTexture,pos);
 
-    color.rgba += (WaterLines.r * 0.2);
+    color.rgba += (WaterLines.r * 0.1);
 
-    gl_FragColor = color;
+    //gl_FragColor = vec4(vec3(gl_FragCoord.z), 1.0);
+    float depth = LinearizeDepth(gl_FragCoord.z); // divide by far for demonstration
+    gl_FragColor = vec4(vec3(depth), 1.0);
 
     /*float worldDepth = getLinearDepth(WorldPosition);
     float screenDepth = getLinearScreenDepth();

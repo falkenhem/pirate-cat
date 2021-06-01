@@ -12,16 +12,22 @@ import com.badlogic.gdx.graphics.g3d.decals.DecalBatch;
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight;
 import com.badlogic.gdx.graphics.g3d.loader.G3dModelLoader;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
+import com.badlogic.gdx.graphics.glutils.FrameBuffer;
+import com.badlogic.gdx.graphics.glutils.GLFrameBuffer;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.physics.box2d.*;
 import com.badlogic.gdx.utils.Array;
+import com.badlogic.gdx.utils.BufferUtils;
 import com.badlogic.gdx.utils.JsonReader;
 import com.piratecatai.game.pathfinding.Graph;
 import com.piratecatai.game.pathfinding.NodeMapGenerator;
 import com.piratecatai.game.pathfinding.PixMapOfMap;
 
+import java.nio.IntBuffer;
+
+import static com.badlogic.gdx.graphics.GL20.*;
 import static com.badlogic.gdx.math.MathUtils.atan2;
 
 
@@ -53,6 +59,8 @@ public class PirateCatAI implements ApplicationListener {
 	private static int mapHeight;
 	private GameObjectManager gameObjectManager;
 	private PixMapOfMap pixMapOfMap;
+	private FrameBuffer mfbo;
+	private IntBuffer depthBuffer;
 
 	@Override
 	public void create () {
@@ -87,13 +95,13 @@ public class PirateCatAI implements ApplicationListener {
 		cam.position.set(0f, 200f, 0f);
 		cam.lookAt(0,0,0);
 		cam.near = 1f;
-		cam.far = 500f;
+		cam.far = 800f;
 		cam.update();
 
 
 		GameAssetManager.getInstance().loadParticleEffects(cam);
 		//effectsManager = new EffectsManager(GameAssetManager.getInstance().getParticleSystem());
-		shader = new TestShader();
+		shader = new WaterShader();
 		shader.init();
 
 		//separate 3D import function later
@@ -194,6 +202,8 @@ public class PirateCatAI implements ApplicationListener {
 
 		Gdx.gl.glViewport(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
 		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
+		Gdx.gl.glDepthFunc(GL20.GL_DEPTH_FUNC);
+		Gdx.gl.glEnable(GL20.GL_DEPTH_TEST);
 
 		cam.position.set(player.instance.transform.getTranslation(new Vector3()).add(0f, 140f, 130f));
 		cam.lookAt(player.instance.transform.getTranslation(new Vector3()));
@@ -212,6 +222,27 @@ public class PirateCatAI implements ApplicationListener {
 		for (ModelInstance instance : water)
 			modelBatch.render(instance,environment,shader);
 		modelBatch.end();
+
+		/*Gdx.gl.glGenTextures(1,depthBuffer);
+		Gdx.gl.glBindTexture(GL20.GL_TEXTURE_2D, depthBufferID[0]);
+
+		Gdx.gl.glTexImage2D(GL20.GL_TEXTURE_2D,          // target texture type
+				0,                                  // mipmap LOD level
+				GL20.GL_DEPTH_COMPONENT,         // internal pixel format
+				//GL2.GL_DEPTH_COMPONENT
+				1024,                     // width of generated image
+				1024,                    // height of generated image
+				0,                          // border of image
+				GL20.GL_DEPTH_COMPONENT,     // external pixel format
+				GL20.GL_UNSIGNED_INT,        // datatype for each value
+				null);  // buffer to store the texture in memory
+
+		//Attach 2D texture to this FBO
+		Gdx.gl.glFramebufferTexture2D(GL20.GL_FRAMEBUFFER,
+				GL20.GL_DEPTH_ATTACHMENT,
+				GL20.GL_TEXTURE_2D,
+				depthBufferID[0],0);*/
+
 
 		modelBatch.begin(cam);
 		for (ChargingArrow arrow : player.getRenderableAccessories()){
